@@ -24,6 +24,10 @@ sudo kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/2140ac876
 kubectl taint nodes --all node-role.kubernetes.io/master-
 sudo chown -R $(id -u):$(id -g) $HOME/.kube/config
 
-### Ugly but lets continue foe now
-./secretInstall.sh
+### Add service account keys for accessing GCR
+./SecretInstall.sh
+
+### Deploy the PODs
+kubectl apply -f deployments/redis-master.yml
+kubectl apply -f deployments/nyc-taxi-app.yml
 
