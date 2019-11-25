@@ -15,8 +15,12 @@ kubectl create secret docker-registry gcr-json-key --docker-server=https://gcr.i
   "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/pubsubfull%40prj-nyc-taxis.iam.gserviceaccount.com"
 }'
 
-
 kubectl patch serviceaccount default -p '{"imagePullSecrets": [{"name": "gcr-json-key"}]}'
 
-rc=$?; if [[ $rc != 0 ]]; then echo "Waiting for service accounts to be ready"; sleep(15) fi
+rc=$?;
+if [[ $rc != 0 ]]; then 
+  echo Waiting for service accounts to be ready
+  sleep 15
+  kubectl patch serviceaccount default -p '{"imagePullSecrets": [{"name": "gcr-json-key"}]}'
+fi
 
