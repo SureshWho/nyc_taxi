@@ -2,22 +2,25 @@ import os
 import time
 import copy
 import json
-
-from   datetime import datetime
-from   datetime import timedelta
-from   google.cloud import pubsub_v1
-from   flask import Flask
 import redis
-
-import logging
+from   flask        import Flask
+from   datetime     import datetime
+from   datetime     import timedelta
+from   google.cloud import pubsub_v1
 
 # holds last one hour trips in minutes Mins * 60
 STORE_LAST_N_MINS = 1 * 60
-tdiff = 0.0
-calls = 0;
+profile_min =  1000 * 1000
+profile_max = 0
+calls = 0
+
+print ("Starting ...")
+
+app = Flask(__name__)
+
 
 def copy_one_hr_trips(message):
-	global tdiff, calls
+	global calls, profile_min, profile_max
 
 	# make a dictionary and add it to the  trips
 	start = time.process_time()
@@ -36,10 +39,25 @@ def copy_one_hr_trips(message):
 	redis_ret = cache.zadd('snapshot', {time_str: score_dt.timestamp()})
 
 	if (redis_ret != 0):
-		max = (score_dt - timedelta(seconds = STORE_LAST_N_MINS)).timestamp()
-		cache.zremrangebyscore('snapshot', max - STORE_LAST_N_MINS, max)
+		maxi = (score_dt - timedelta(seconds = STORE_LAST_N_MINS)).timestamp()
+		cache.zremrangebyscore('snapshot', maxi - STORE_LAST_N_MINS, maxi)
 
 	tdiff = time.process_time() - start
+	profile_min = min(tdiff, profile_min)
+	profile_max = max(tdiff, profile_max)
+
+	return
+
+def dummy (message):
+	global calls, profile_min, profile_max
+
+	# make a dictionary and add it to the  trips
+	start = time.process_time()
+	calls    = calls + 1
+
+	tdiff = time.process_time() - start
+	profile_min = min(tdiff, profile_min)
+	profile_max = max(tdiff, profile_max)
 
 	return
 
@@ -49,22 +67,23 @@ def get_trip_count():
 
 def callback(message):
 	#print(message.data)
-	copy_one_hr_trips (message)
+	#copy_one_hr_trips (message)
+	dummy (message)
 	message.ack()
+
+
+redis_host = os.environ['REDIS_HOST']
+redis_port = int(os.environ['REDIS_PORT'])
+
+print ('Connecting redis with {}:{}'.format(redis_host, redis_port))
+cache = redis.Redis(host=redis_host, port=redis_port)
 
 subscriber = pubsub_v1.SubscriberClient()
 
 topic_name = 'projects/pubsub-public-data/topics/taxirides-realtime'
-subscription_name = 'projects/prj-nyc-taxis/subscriptions/nyc-taxi'
+subscription_name = 'projects/prj-nyc-taxis/subscriptions/nyc-taxi-5'
 
-#topic_name = 'projects/{project_id}/topics/{topic}'.format(
-#    project_id=os.getenv('GOOGLE_CLOUD_PROJECT'),
-#    topic='MY_TOPIC_NAME',  # Set this to something appropriate.
-#)
-#subscription_name = 'projects/{project_id}/subscriptions/{sub}'.format(
-#    project_id=os.getenv('GOOGLE_CLOUD_PROJECT'),
-#    sub='MY_SUBSCRIPTION_NAME',  # Set this to something appropriate.
-#)
+
 try:
     subscriber.get_subscription(subscription_name)
 except IOError as e:
@@ -76,46 +95,28 @@ except IOError as e:
 future = subscriber.subscribe(subscription_name, callback)
 
 '''
-try:
-	subscriber.get_subscription(subscription_name)
-except IOError as e:
-	print (e)
-
-	subscription = subscriber.create_subscription(
-    name=subscription_name, topic=topic_name)
-
-future = subscriber.subscribe(subscription_name, callback)
-
-try:
-    # When timeout is unspecified, the result method waits indefinitely.
-    future.result(timeout=30)
-except Exception as e:
-    print(
-        'Listening for messages on {} threw an Exception: {}.'.format(
-            subscription_name, e))
+while True:
+	try:
+    	# When timeout is unspecified, the result method waits indefinitely.
+		future.result(30)
+	except Exception as e:
+		print(
+			'Listening for messages on {} threw an Exception: {}.'.format(
+			subscription_name, e))
+	print (" Calls [{}] Max [{:5.2f}]us Min [{:5.2f}]us".format(calls, profile_max * 1000 * 1000, profile_min * 1000 * 1000))
+	profile_min =  1000 * 1000; profile_max = 0; calls = 0
 '''
 
-app   = Flask(__name__)
-
-redis_host = 'localhost'
-redis_port = '6379'
-
-if __name__ != "__main__":
-	redis_host = os.environ['REDIS_HOST']
-	redis_port = os.environ['REDIS_PORT']	
-
-print ('Connecting redis with {}:{}'.format(redis_host, redis_port))
-cache = redis.Redis(host=redis_host, port=int(redis_port))
+print ("!!! Should not come here !!!")
 
 
 @app.route('/')
 def hello():
-    (trips, calls, cached_trips, cache_size, time_taken) = get_trip_count()
-    return 'Trips:[{}] Calls Received:[{}] Items in Cache:[{}] Cache time:[{}]secs Serving time:[{}us] .\n'.format(trips, calls, cached_trips, cache_size, time_taken)
-
-log = logging.getLogger('werkzeug')
-log.setLevel(logging.ERROR)
+	global calls, profile_min, profile_max
+	ret_str = " Calls [{}] Max [{:5.2f}]us Min [{:5.2f}]us \n".format(calls, profile_max * 1000 * 1000, profile_min * 1000 * 1000)
+	profile_min =  1000 * 1000; profile_max = 0; calls = 0
+	return ret_str
 
 if __name__ == "__main__":
-  app.run(host='0.0.0.0', port=80)
+  app.run(host='0.0.0.0', port=90)
 
