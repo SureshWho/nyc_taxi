@@ -28,8 +28,10 @@ sudo chown -R $(id -u):$(id -g) $HOME/.kube/config
 ./SecretInstall.sh
 
 ### Deploy the PODs
-echo "Deploying...rasid-master"
+echo "!!! Deploying...rasid-master"
 kubectl apply -f deployments/redis-master.yml
-echo "Deploying...nyc-taxi-app"
+echo "!!! Deploying...nyc-taxi-app"
 kubectl apply -f deployments/nyc-taxi-app.yml
+echo "!!! Deploying...subscriber"
+kubectl apply -f deployments/subscriber.yml
 
