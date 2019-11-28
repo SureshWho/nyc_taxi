@@ -3,8 +3,9 @@ import time
 import redis
 import logging
 
-from   flask import Flask
-from   flask import request
+from   flask     import Flask
+from   flask     import request
+from   datetime  import datetime
 
 
 app = Flask(__name__)
@@ -33,6 +34,19 @@ cache = redis.Redis(host=redis_host, port=redis_port)
 
 
 
+def bytes_to_datetime(bytes):
+
+	# convert into string
+	str_t = bytes.decode("utf-8")
+
+	# Convert string into datetime
+	if '.' not in str_t:
+		datetime_t = datetime.strptime(str_t, "%Y-%m-%dT%H:%M:%S%z")
+	else:
+		datetime_t = datetime.strptime(str_t, "%Y-%m-%dT%H:%M:%S.%f%z")
+
+	return datetime_t
+
 @app.route('/')
 def hello():
 
@@ -48,10 +62,16 @@ def hello():
 @app.route('/debug')
 def debug():
 
+	# get the completed rides from cache
+	rides   = cache.zrange('snapshot', 0, -1)
+
 	# return number of rides. If debug enabled return all data
-	ret_str = hello ()
-	for rec in rides:
-		ret_str = ret_str + str(rec) + '\n'
+	ret_str = '{}\n'.format(len(rides))
+    
+	fl = [rides[0], rides[len(rides)-1]]
+	for rec in fl:
+		datetime_t = bytes_to_datetime(rec).astimezone()
+		ret_str = ret_str + str(rec) + '    Local:' + datetime_t.isoformat() + '\n'
 
 	return ret_str
 
