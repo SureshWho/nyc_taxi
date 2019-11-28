@@ -1,6 +1,6 @@
 # The Dockerfile defines the image's environment
 # Import Python runtime and set up working directory
-FROM python:3.5.7-buster
+FROM python:3.7.4-buster
 WORKDIR /app
 ADD . /app
 
