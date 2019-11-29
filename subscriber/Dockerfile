@@ -10,7 +10,7 @@ ENV GOOGLE_APPLICATION_CREDENTIALS /app/prj-nyc-taxis-9877814e83d5.json
 RUN pip install -r requirements.txt
 
 # Open port 8080 for serving the webpage
-EXPOSE 90
+# EXPOSE 90
 
 # Run app.py when the container launches
 CMD ["python", "app.py"]

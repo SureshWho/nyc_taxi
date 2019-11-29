@@ -4,7 +4,7 @@ kind: Deployment                 # Type of Kubernetes resource
 metadata:
   name: subscriber             # Unique name of the Kubernetes resource
 spec:
-  replicas: 1                    # Number of pods to run at any given time
+  replicas: 4                    # Number of pods to run at any given time
   selector:
     matchLabels:
       app: subscriber          # This deployment applies to any Pods matching the specified label
@@ -19,10 +19,8 @@ spec:
         imagePullPolicy: IfNotPresent
         resources:
           requests:
-            cpu: 100m
+            cpu: 300m
             memory: 100Mi
-        ports:
-          - containerPort: 90    # Should match the port number that the Go application listens on    
         env:                     # Environment variables passed to the container
           - name: REDIS_HOST
             value: redis-master
@@ -31,23 +29,10 @@ spec:
           - name : SUBSCRIBER_BATCH_SZ
             value: "1024"
           - name: SUBSCRIBER_SUBCRIPTION_NAME
-            value: "projects/prj-nyc-taxis/subscriptions/NYC-TAXI-SERVICE-FOR-THEM"
+            value: "projects/prj-nyc-taxis/subscriptions/NYC-TAXI-SERVICE-FOR-THEM-5"
           - name: SUBSCRIBER_TOPIC_NAME
             value: "projects/pubsub-public-data/topics/taxirides-realtime"
           - name: SUBSCRIBER_CACHE_TIME_IN_SECS
             value: "60"
           - name: SUBSCRIBER_DEBUG
             value: "1"
----
-apiVersion: v1
-kind: Service                    # Type of kubernetes resource
-metadata:
-  name: subscriber-service     # Unique name of the resource
-spec:
-  type: NodePort                 # Expose the Pods by opening a port on each Node and proxing it to the service.
-  ports:                         # Take incoming HTTP requests on port 9090 and forward them to the targetPort of 90
-  - name: http
-    port: 1010
-    targetPort: 90
-  selector:
-    app: subscriber 

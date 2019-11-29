@@ -4,7 +4,7 @@ kind: Deployment                 # Type of Kubernetes resource
 metadata:
   name: nyc-taxi-app             # Unique name of the Kubernetes resource
 spec:
-  replicas: 1                    # Number of pods to run at any given time
+  replicas: 2                    # Number of pods to run at any given time
   selector:
     matchLabels:
       app: nyc-taxi-app          # This deployment applies to any Pods matching the specified label
@@ -19,7 +19,7 @@ spec:
         imagePullPolicy: IfNotPresent
         resources:
           requests:
-            cpu: 100m
+            cpu: 200m
             memory: 100Mi
         ports:
           - containerPort: 80    # Should match the port number that the Go application listens on    

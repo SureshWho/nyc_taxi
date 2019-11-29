@@ -107,7 +107,7 @@ def process_msg_synchronously(subscriber):
 		(time_str, time_score, ride_status) = convert_message(msg.message)
 		if (ride_status == 'dropoff'):
 			mappings[time_str] = time_score
-		max_timestamp = max(max_timestamp, time_score);
+			max_timestamp = max(max_timestamp, time_score);
 
 	# if no rides completed ACK all MSG, if some rides completed ACK only in redis write is successful
 	if (len(mappings) == 0):
