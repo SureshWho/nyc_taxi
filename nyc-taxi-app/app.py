@@ -68,7 +68,7 @@ def debug():
 	# return number of rides. If debug enabled return all data
 	ret_str = '{}\n'.format(len(rides))
     
-    if (len(rides) != 0):
+	if (len(rides) != 0):
 		fl = [rides[0], rides[len(rides)-1]]
 		for rec in fl:
 			datetime_t = bytes_to_datetime(rec).astimezone()
