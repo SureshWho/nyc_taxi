@@ -4,7 +4,7 @@ kind: Deployment                 # Type of Kubernetes resource
 metadata:
   name: nyc-taxi-app             # Unique name of the Kubernetes resource
 spec:
-  replicas: 2                    # Number of pods to run at any given time
+  replicas: 3                    # Number of pods to run at any given time
   selector:
     matchLabels:
       app: nyc-taxi-app          # This deployment applies to any Pods matching the specified label
