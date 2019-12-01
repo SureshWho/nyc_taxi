@@ -10,5 +10,5 @@ echo "Building Pub/Sub Subscriber"
 rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 
 echo "Creating tar image"
-tar -cvf nyc-taxi-pkg.tar ./Install.sh ./DockerInstall.sh ./KuberInstall.sh ./SecretInstall.sh ./deployments
+tar -cvf nyc-taxi-pkg.tar ./Install.sh ./DockerInstall.sh ./KuberInstall.sh ./SecretInstall.sh ./deployments ./*.yaml ./PodsInstall.sh ./PodsCleanup.sh 
 
