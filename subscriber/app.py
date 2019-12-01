@@ -45,7 +45,7 @@ if 'SUBSCRIBER_CACHE_TIME_IN_SECS' in os.environ:
 	cache_time_in_secs = int(os.environ['SUBSCRIBER_CACHE_TIME_IN_SECS'])
 
 # get debug setting
-debug_enabled = False
+debug_enabled = True
 if 'SUBSCRIBER_DEBUG' in os.environ:
 	debug_enabled = bool(int(os.environ['SUBSCRIBER_DEBUG']))
 
@@ -216,6 +216,7 @@ def cache_write_and_ack_msgs(cache, subscriber, subscription_name, trip_mappings
 	redis_ret = 0
 	try:
 		redis_ret = cache.zadd('snapshot', trip_mappings)
+		if (redis_ret == 0): print ("Write failed")
 	except Exception as e:
 		redis_ret = 0
 		if is_debug_enabled (): print ("Exception: {}", e)
@@ -223,7 +224,7 @@ def cache_write_and_ack_msgs(cache, subscriber, subscription_name, trip_mappings
 	# if write was success, ack all msgs, otherwise return then as pending messages
 	if (redis_ret != 0):
 		subscriber.acknowledge(subscription_name, ack_ids)
-		ack_ids = []
+		ack_ids       = []
 		trip_mappings = {}
 	
 	return trip_mappings, ack_ids 
@@ -242,7 +243,8 @@ def exact_ack_ids_and_trip_info (received_messages):
     received_messages - Redis object for writing
 
     Return:
-    ack_ids                 - For the all the messages received.
+    ack_ids_snapshots       - ACK IDs for tnormal messges
+    ack_ids_trips           - ACK IDs for trip messages
     trip_mappings           - trip mapping information for drop off trips.
     recent_trip_timestamp   - Timestamp of the recent trip
     
@@ -250,24 +252,27 @@ def exact_ack_ids_and_trip_info (received_messages):
     - Place holder
  	'''
 	recent_trip_timestamp  = 0
-	ack_ids                = []
+	ack_ids_snapshot       = []
+	ack_ids_trips          = []
 	trip_mappings          = {}
 
     # Collect ACK_IDs for all the messages and trip info for dropoff trips.
 	for msg in received_messages:
-		ack_ids.append(msg.ack_id)
 		(time_str, time_score, ride_status) = convert_message(msg.message)
 
 		# For dropoff message get the trip mappings {Timestamp_str:timestamp_as_score} 
-		if (ride_status == 'dropoff'):
+		if (ride_status != 'dropoff'):
+			ack_ids_snapshot.append(msg.ack_id)
+		else:
+			ack_ids_trips.append(msg.ack_id)
 			trip_mappings[time_str] = time_score
-			recent_trip_timestamp = max(recent_trip_timestamp, time_score);
+			recent_trip_timestamp   = max(recent_trip_timestamp, time_score);
 			
-	return ack_ids, trip_mappings, recent_trip_timestamp
+	return ack_ids_snapshot, ack_ids_trips, trip_mappings, recent_trip_timestamp
 
 
 # Processes PubSub messages in synchronous mode.
-def process_msgs_synchronously(cache, subscriber, subscription_name, cache_time_in_secs, batch_sz):
+def process_msgs_synchronously(cache, subscriber, subscription_name, pending_trip_mappings, pending_ack_ids, cache_time_in_secs, batch_sz):
 	'''
     Processes PubSub messages in synchronous mode.
     
@@ -291,8 +296,6 @@ def process_msgs_synchronously(cache, subscriber, subscription_name, cache_time_
  	'''
 
     # measure processing time for debugging
-	ack_ids       = []
-	trip_mappings = {}
 	start         = time.process_time()
     
 	try:
@@ -302,18 +305,26 @@ def process_msgs_synchronously(cache, subscriber, subscription_name, cache_time_
 	except Exception as e:
 		if is_debug_enabled (): print ("Exception: Service not available {}", e)
 		time.sleep (5)
-		return ([], {})
+		return ({}, [])
 
 	# Collect ACK_IDs and trip mapping informtion
-	ack_ids, trip_mappings, recent_trip_timestamp = exact_ack_ids_and_trip_info (response.received_messages)
+	ack_ids_snapshot, ack_ids_trips, trip_mappings, recent_trip_timestamp = exact_ack_ids_and_trip_info (response.received_messages)
 
-	# if there are no trips completed, in these msgs, just ACK them all otherwise write the 
-	# trip_mapping into cache and ack them
-	if (len(trip_mappings) == 0):
-		subscriber.acknowledge(subscription_name, ack_ids)
-	else:
+	# add the previous trip pending msgs also
+	#print (trip_mappings, pending_trip_mappings)
+	ack_ids_trips = ack_ids_trips + pending_ack_ids
+	trip_mappings = {**trip_mappings,**pending_trip_mappings}
+	#print (trip_mappings)
+
+	# ACK the snapshot (non trip) messages ASAP
+	if (len(ack_ids_snapshot) != 0):
+		subscriber.acknowledge(subscription_name, ack_ids_snapshot)
+
+    # Write and ACK the trip messages
+	if (len(ack_ids_trips) != 0):
+
         # Write to redis and ACK them if success
-		cache_write_and_ack_msgs(cache, subscriber, subscription_name, trip_mappings, ack_ids)
+		pending_trip_mappings, pending_ack_ids = cache_write_and_ack_msgs(cache, subscriber, subscription_name, trip_mappings, ack_ids_trips)
 
 		# Just keep only last N seconds trip infomation, delete others
 		cache_delete_n_old_msgs(cache, recent_trip_timestamp, cache_time_in_secs)
@@ -322,10 +333,10 @@ def process_msgs_synchronously(cache, subscriber, subscription_name, cache_time_
 	tdiff = time.process_time() - start
 
     # for debugging. will calculate how much time to process a single message
-	profile (len(ack_ids), len(trip_mappings), tdiff)
+	profile (len(ack_ids_trips)+len(ack_ids_snapshot), len(trip_mappings), tdiff)
 
     # return any unacked and un write trips
-	return
+	return pending_trip_mappings, pending_ack_ids
 
 
 print ('Connecting redis with {}:{}'.format(redis_host, redis_port))
@@ -339,7 +350,8 @@ try:
 except Exception as e:
 	if type(e).__name__ == 'NotFound':
 		print ("Creating subscription...")
-		subscription = subscriber.create_subscription(name=subscription_name, topic=topic_name)
+		duration = datetime.now() + timedelta(seconds=3600)
+		subscription = subscriber.create_subscription(name=subscription_name, topic=topic_name, ack_deadline_seconds=10)
 
 @app.route('/')
 def hello():
@@ -363,8 +375,15 @@ t.start()
 
 # process the MSGs
 print ("Receiving PubSub...")
+pending_trip_mappings = {}
+pending_ack_ids       = []
 while True: 
-	process_msgs_synchronously (cache, subscriber, subscription_name, cache_time_in_secs, batch_sz)
+	pending_trip_mappings, pending_ack_ids = process_msgs_synchronously (cache, subscriber, subscription_name, 
+		                                                pending_trip_mappings, pending_ack_ids, cache_time_in_secs, batch_sz)
+
+	if (len(pending_ack_ids) != 0):
+		print ("Pending {}".format(len(pending_ack_ids)))
+
 
 
 
