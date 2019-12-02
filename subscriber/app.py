@@ -71,7 +71,6 @@ print ("Starting ...with\nTopic [{}]\nSubscription [{}]\nbatch size [{}] Debug[{
 
 app = Flask(__name__)
 
-
 # Profile time take to process the message
 g_profile_max    = 0
 g_profile_min    = 1000 * 1000
@@ -198,6 +197,7 @@ def cache_delete_n_old_msgs(cache, recent_trip_timestamp, cache_time_in_secs):
             redis_ret            = 0;
             g_healling_time      = datetime.now()
             if is_debug_enabled (): print ("Exception: {}", e)
+            get_redis_master()
 
     if redis_ret != 0:
         g_old_timestamp = recent_trip_timestamp
@@ -247,6 +247,7 @@ def cache_write_and_ack_msgs(cache, subscriber, subscription_name, trip_mappings
         redis_ret = 0
         g_healling_time      = datetime.now()
         if is_debug_enabled (): print ("Exception: {}", e)
+        get_redis_master()
 
     # if write was success, ack all msgs, otherwise return then as pending messages
     if (redis_ret != 0):
@@ -367,16 +368,23 @@ def process_msgs_synchronously(cache, subscriber, subscription_name, pending_tri
 
 
 def get_redis_master():
+    global cache
 
+    retry = 50
     print ('Connecting redis sentinel with {}:{}'.format(redis_sentinel, redis_sentinel_port))
-    sentinel = Sentinel([(redis_sentinel, redis_sentinel_port)], socket_timeout=0.5)
-    master   = sentinel.master_for('mymaster', socket_timeout=0.5)
+
+    while retry > 0:
+        try:
+            sentinel   = Sentinel([(redis_sentinel, redis_sentinel_port)], socket_timeout=0.5)
+            master = sentinel.master_for('mymaster', socket_timeout=0.5)
+            retry = 0
+            cache = master
+        except Exception as e:
+            retry = retyr - 1
 
     return master
 
-
-cache = get_redis_master()
-
+cache      = get_redis_master()
 subscriber = pubsub_v1.SubscriberClient()
 
 try:

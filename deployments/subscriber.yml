@@ -33,11 +33,13 @@ spec:
           - name : SUBSCRIBER_BATCH_SZ
             value: "1024"
           - name: SUBSCRIBER_SUBCRIPTION_NAME
-            value: "projects/prj-nyc-taxis/subscriptions/NYC-TAXI-SERVICE-FOR-PROD-XY"
+            value: "projects/prj-nyc-taxis/subscriptions/NYC-TAXI-SERVICE-FOR-PROD-03"
           - name: SUBSCRIBER_TOPIC_NAME
             value: "projects/pubsub-public-data/topics/taxirides-realtime"
           - name: SUBSCRIBER_CACHE_TIME_IN_SECS
             value: "3600"
           - name: SUBSCRIBER_DEBUG
             value: "1"
+          - name: SUBSCRIBER_HEAL_TIME
+            value: "10"
 

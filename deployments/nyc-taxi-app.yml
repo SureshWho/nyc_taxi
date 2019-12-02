@@ -25,7 +25,7 @@ spec:
           - containerPort: 80    # Should match the port number that the Go application listens on    
         env:                     # Environment variables passed to the container
           - name: APP_REDIS_HOST
-            value: redis-master
+            value: nyc-taxi-redis.default.svc.cluster.local
           - name: APP_REDIS_PORT
             value: "6379"
           - name: APP_REDIS_SENTINEL
@@ -35,11 +35,10 @@ spec:
           - name: APP_CACHE_TIME_IN_SECS
             value: "3600"
           - name: APP_DEBUG
-            value: "1"
+            value: "0"
           - name: APP_TIME_ZONE
             value: America/New_York
-          - name: SUBSCRIBER_HEAL_TIME
-            value: "10"
+
 ---
 apiVersion: v1
 kind: Service                    # Type of kubernetes resource
