@@ -19,20 +19,25 @@ spec:
         imagePullPolicy: IfNotPresent
         resources:
           requests:
-            cpu: 300m
+            cpu: 100m
             memory: 100Mi
         env:                     # Environment variables passed to the container
-          - name: REDIS_HOST
+          - name: SUBS_REDIS_HOST
             value: redis-master
-          - name: REDIS_PORT
+          - name: SUBS_REDIS_PORT
             value: "6379"
+          - name: SUBS_REDIS_SENTINEL
+            value: nyc-taxi-redis.default.svc.cluster.local
+          - name: SUBS_REDIS_SENTINEL_PORT
+            value: "26379"
           - name : SUBSCRIBER_BATCH_SZ
             value: "1024"
           - name: SUBSCRIBER_SUBCRIPTION_NAME
-            value: "projects/prj-nyc-taxis/subscriptions/NYC-TAXI-SERVICE-FOR-PROD"
+            value: "projects/prj-nyc-taxis/subscriptions/NYC-TAXI-SERVICE-FOR-PROD-XY"
           - name: SUBSCRIBER_TOPIC_NAME
             value: "projects/pubsub-public-data/topics/taxirides-realtime"
           - name: SUBSCRIBER_CACHE_TIME_IN_SECS
             value: "3600"
           - name: SUBSCRIBER_DEBUG
             value: "1"
+

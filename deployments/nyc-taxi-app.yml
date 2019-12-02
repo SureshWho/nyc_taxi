@@ -24,10 +24,14 @@ spec:
         ports:
           - containerPort: 80    # Should match the port number that the Go application listens on    
         env:                     # Environment variables passed to the container
-          - name: REDIS_HOST
+          - name: APP_REDIS_HOST
             value: redis-master
-          - name: REDIS_PORT
+          - name: APP_REDIS_PORT
             value: "6379"
+          - name: APP_REDIS_SENTINEL
+            value: nyc-taxi-redis.default.svc.cluster.local
+          - name: APP_REDIS_SENTINEL_PORT
+            value: "26379"
           - name: NYC_TAXI_APP_DEBUG
             value: "1"
 ---
