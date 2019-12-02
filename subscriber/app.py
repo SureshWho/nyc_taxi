@@ -58,6 +58,11 @@ debug_enabled = True
 if 'SUBSCRIBER_DEBUG' in os.environ:
     debug_enabled = bool(int(os.environ['SUBSCRIBER_DEBUG']))
 
+# App heal time after redis exception in secs
+app_heal_time = 5
+if 'SUBSCRIBER_HEAL_TIME' in os.environ:
+    app_heal_time = int(os.environ['SUBSCRIBER_HEAL_TIME'])
+
 def is_debug_enabled ():
     return debug_enabled
 
@@ -155,7 +160,8 @@ def convert_message(message):
 
 
 # Delete last N trip to keep only last T seconds of trip information
-g_old_timestamp = 0.0
+g_old_timestamp      = 0.0
+g_healling_time      = datetime.now()
 def cache_delete_n_old_msgs(cache, recent_trip_timestamp, cache_time_in_secs):
     '''
     Delete last N trips.
@@ -177,7 +183,11 @@ def cache_delete_n_old_msgs(cache, recent_trip_timestamp, cache_time_in_secs):
     - Place holder
     '''
 
-    global g_old_timestamp
+    global g_old_timestamp, g_healling_time
+
+    # wait for system to heal after connecton lost or any other cache write exception
+    if (datetime.now() - g_healling_time) < timedelta (seconds=app_heal_time):
+        return 0
 
     # just keep only last N secods trips. Do not delete the window if already deleted once [TODO Needed??]
     redis_ret = 1
@@ -185,7 +195,8 @@ def cache_delete_n_old_msgs(cache, recent_trip_timestamp, cache_time_in_secs):
         try:
             redis_ret = cache.zremrangebyscore('snapshot', -1, recent_trip_timestamp - cache_time_in_secs)
         except Exception as e:
-            redis_ret = 0;
+            redis_ret            = 0;
+            g_healling_time      = datetime.now()
             if is_debug_enabled (): print ("Exception: {}", e)
 
     if redis_ret != 0:
@@ -222,12 +233,19 @@ def cache_write_and_ack_msgs(cache, subscriber, subscription_name, trip_mappings
     '''
 
     # Write the MSG. Exceptions are errors
+    global g_healling_time
+
+    # wait for system to heal after connecton lost or any other cache write exception
+    if (datetime.now() - g_healling_time) < timedelta(seconds=app_heal_time):
+        return trip_mappings, ack_ids
+
     redis_ret = 0
     try:
         redis_ret = cache.zadd('snapshot', trip_mappings)
         if (redis_ret == 0): print ("Write failed")
     except Exception as e:
         redis_ret = 0
+        g_healling_time      = datetime.now()
         if is_debug_enabled (): print ("Exception: {}", e)
 
     # if write was success, ack all msgs, otherwise return then as pending messages
@@ -351,14 +369,10 @@ def process_msgs_synchronously(cache, subscriber, subscription_name, pending_tri
 def get_redis_master():
 
     print ('Connecting redis sentinel with {}:{}'.format(redis_sentinel, redis_sentinel_port))
-    sentinel = Sentinel([(redis_sentinel, redis_sentinel_port)], socket_timeout=0.1)
-    master   = sentinel.master_for('mymaster', socket_timeout=0.1)
-
-    #print ('Connecting redis with {}:{}'.format(redis_host, redis_port))
-    #master = redis.Redis(host=redis_host, port=redis_port)
+    sentinel = Sentinel([(redis_sentinel, redis_sentinel_port)], socket_timeout=0.5)
+    master   = sentinel.master_for('mymaster', socket_timeout=0.5)
 
     return master
-
 
 
 cache = get_redis_master()

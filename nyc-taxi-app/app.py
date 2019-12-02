@@ -2,10 +2,11 @@ import os
 import time
 import redis
 import logging
+import pytz
 
 from   flask          import Flask
 from   flask          import request
-from   datetime       import datetime
+from   datetime       import datetime, timezone
 from   redis.sentinel import Sentinel
 
 
@@ -29,10 +30,20 @@ redis_sentinel_port = 26379
 if 'APP_REDIS_SENTINEL_PORT' in os.environ:
     redis_sentinel_port = int(os.environ['APP_REDIS_SENTINEL_PORT'])
 
+# get cache time settings
+cache_time_in_secs = 30 * 60
+if 'APP_CACHE_TIME_IN_SECS' in os.environ:
+    cache_time_in_secs = int(os.environ['APP_CACHE_TIME_IN_SECS'])
+
+# get cache time settings
+time_zone = pytz.timezone('America/New_York')
+if 'APP_TIME_ZONE' in os.environ:
+    time_zone = pytz.timezone(os.environ['APP_TIME_ZONE'])
+
 # get debug setting
 debug_enabled = False
-if 'NYC_TAXI_APP_DEBUG' in os.environ:
-    debug_enabled = bool(int(os.environ['NYC_TAXI_APP_DEBUG']))
+if 'APP_DEBUG' in os.environ:
+    debug_enabled = bool(int(os.environ['APP_DEBUG']))
 
 def is_debug_enabled ():
     return debug_enabled
@@ -51,8 +62,6 @@ def get_redis_slave():
 print ("Starting ...Debug[{}] ".format(debug_enabled))
 cache = get_redis_slave ()
 
-
-
 def bytes_to_datetime(bytes):
 
     # convert into string
@@ -66,16 +75,20 @@ def bytes_to_datetime(bytes):
 
     return datetime_t
 
-
 def get_rides():
     # get the completed rides from cache
-    retry = 50
+    now_time = datetime.now(time_zone)
+    max_timestamp = now_time.timestamp()
+    min_timestamp = max_timestamp - cache_time_in_secs
 
+    retry = 50
     # read with retry
     while retry != 0:
         try:
-            rides   = cache.zrange('snapshot', 0, -1)
+            #rides   = cache.zrangebyscore('snapshot', min_timestamp, max_timestamp)
+            rides   = cache.zrangebyscore('snapshot', min_timestamp, max_timestamp)
             retry   = 0
+            print ('Here ', len(rides))
         except Exception as e:
             rides = []
             retry = retry - 1
@@ -107,8 +120,8 @@ def debug():
 
     return ret_str
 
-log = logging.getLogger('werkzeug')
-log.setLevel(logging.ERROR)
+#log = logging.getLogger('werkzeug')
+#log.setLevel(logging.ERROR)
 
 if __name__ == "__main__":
   app.run(host='0.0.0.0', port=80)
