@@ -50,12 +50,12 @@ def is_debug_enabled ():
 
 def get_redis_slave():
 
-    #print ('Connecting redis sentinel with {}:{}'.format(redis_sentinel, redis_sentinel_port))
-    #sentinel = Sentinel([(redis_sentinel, redis_sentinel_port)], socket_timeout=0.1)
-    #slave   = sentinel.slave_for('mymaster', socket_timeout=0.1)
+    print ('Connecting redis sentinel with {}:{}'.format(redis_sentinel, redis_sentinel_port))
+    sentinel = Sentinel([(redis_sentinel, redis_sentinel_port)], socket_timeout=0.1)
+    slave   = sentinel.slave_for('mymaster', socket_timeout=0.1)
 
-    print ('Connecting redis with {}:{}'.format(redis_host, redis_port))
-    slave = redis.Redis(host=redis_host, port=redis_port)
+    #print ('Connecting redis with {}:{}'.format(redis_host, redis_port))
+    #slave = redis.Redis(host=redis_host, port=redis_port)
 
     return slave
 
