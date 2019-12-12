@@ -3,11 +3,11 @@
 curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get > get_helm.sh
 chmod 700 get_helm.sh
 ./get_helm.sh
-echo "Wait...cleaning up the tiller"
+echo "Wait..."
 sleep 10
 
 ### Install has some bug we need to delete and re-create ###
-echo "Ignore following errors(s). Sometime tiller does not start properly"
+echo "Cleaningup tiller, Ignore any error(s). Might take upto 3m0s"
 kubectl get all --all-namespaces | grep tiller
 kubectl delete deployment tiller-deploy -n kube-system
 kubectl delete service tiller-deploy -n kube-system
