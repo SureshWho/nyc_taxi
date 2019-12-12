@@ -3,29 +3,30 @@
 curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get > get_helm.sh
 chmod 700 get_helm.sh
 ./get_helm.sh
-echo "Wait..."
-sleep 15
+echo "Wait...cleaning up the tiller"
+sleep 10
 
 ### Install has some bug we need to delete and re-create ###
+echo "Ignore following errors(s). Sometime tiller does not start properly"
 kubectl get all --all-namespaces | grep tiller
 kubectl delete deployment tiller-deploy -n kube-system
 kubectl delete service tiller-deploy -n kube-system
 kubectl get all --all-namespaces | grep tiller
-sleep 15
+sleep 5
 
 helm init
-echo "Wait..."
+echo "Wait...Re-initializing"
 sleep 15
 
 kubectl create serviceaccount --namespace kube-system tiller
 kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
 kubectl patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}'
-echo "Wait..."
-sleep 15
+echo "Wait...Creating service accounts"
+sleep 10
 
 kubectl --namespace kube-system get pods | grep tiller
 
-echo "Waiting till tiller gets ready"
+echo "Waiting till tiller to get ready"
 sleep 20
 kubectl --namespace kube-system get pods | grep tiller
 sleep 5
