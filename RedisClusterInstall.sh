@@ -15,7 +15,7 @@ kubectl get all --all-namespaces | grep tiller
 sleep 5
 
 helm init
-echo "Wait...Re-initializing"
+echo "Wait...Re-initializing tiller"
 sleep 15
 
 kubectl create serviceaccount --namespace kube-system tiller
