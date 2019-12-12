@@ -31,3 +31,5 @@ sudo chown -R $(id -u):$(id -g) $HOME/.kube/config
 
 ./PodsInstall.sh
 
+echo "Installation Done"
+
