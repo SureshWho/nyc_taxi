@@ -30,4 +30,4 @@ docker tag "$1" gcr.io/$G_PROJECT/"$1":latest
 echo "Pushing... gcr.io/$G_PROJECT/$1:latest"
 docker push gcr.io/$G_PROJECT/"$1":latest
 
-docker image ls
+# docker image ls
