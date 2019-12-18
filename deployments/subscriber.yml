@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: subscriber
-        image: gcr.io/prj-nyc-taxis/subscriber:latest
+        image: gcr.io/prj-nyc-taxis-with-kafka/subscriber:latest
         imagePullPolicy: IfNotPresent
         resources:
           requests:
@@ -33,7 +33,7 @@ spec:
           - name : SUBSCRIBER_BATCH_SZ
             value: "1024"
           - name: SUBSCRIBER_SUBCRIPTION_NAME
-            value: "projects/prj-nyc-taxis/subscriptions/NYC-TAXI-SERVICE-FOR-PROD-07"
+            value: "projects/prj-nyc-taxis-with-kafka/subscriptions/NYC-TAXI-SERVICE"
           - name: SUBSCRIBER_TOPIC_NAME
             value: "projects/pubsub-public-data/topics/taxirides-realtime"
           - name: SUBSCRIBER_CACHE_TIME_IN_SECS
