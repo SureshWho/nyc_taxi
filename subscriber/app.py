@@ -2,7 +2,6 @@ import os
 import time
 import copy
 import json
-import redis
 import threading
 import logging
 
@@ -12,6 +11,13 @@ from   datetime       import datetime
 from   datetime       import timedelta
 from   google.cloud   import pubsub_v1
 from   redis.sentinel import Sentinel
+from   kafka          import KafkaConsumer
+
+
+
+consumer = KafkaConsumer('test')
+for msg in consumer:
+    print (msg.value)
 
 ### get environment variables ###
 
@@ -21,7 +27,7 @@ if 'SUBSCRIBER_BATCH_SZ' in os.environ:
     batch_sz = int(os.environ['SUBSCRIBER_BATCH_SZ'])
 
 # get subsub batch size from environment variable 
-subscription_name = 'projects/prj-nyc-taxis/subscriptions/NYC-TAXI_SERVICE'
+subscription_name = 'projects/prj-nyc-taxis-with-kafka/subscriptions/NYC-TAXI_SERVICE'
 if 'SUBSCRIBER_SUBCRIPTION_NAME' in os.environ:
     subscription_name = os.environ['SUBSCRIBER_SUBCRIPTION_NAME']
 
