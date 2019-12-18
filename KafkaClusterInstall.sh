@@ -16,9 +16,9 @@ kubectl apply -f deployments/volumn_1.yml
 kubectl apply -f deployments/volumn_2.yml
 kubectl apply -f deployments/volumn_3.yml
 
-
+echo "Settingup kafka cluster"
+helm repo add bitnami https://charts.bitnami.com/bitnami
 helm repo update
-helm install stable/redis --name nyc-taxi --values deployments/values-production.yaml
-#helm install stable/redis
+helm install bitnami/kafka --name nyc-taxi-kafka -f deployments/values-kafka.yml
 
 
