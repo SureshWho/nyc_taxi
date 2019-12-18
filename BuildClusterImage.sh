@@ -1,7 +1,8 @@
 #!/bin/bash
 #
 #
-export G_PROJECT=prj-nyc-taxis
+export G_PROJECT=prj-nyc-taxis-with-kafka
+
 echo "Building NYC Taxi Application "
 ./BuildDockerImage.sh nyc-taxi-app
 rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
