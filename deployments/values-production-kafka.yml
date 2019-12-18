@@ -104,7 +104,7 @@ config: |-
 ## https://github.com/bitnami/bitnami-docker-kafka#configuration
 ##
 ## Allow to use the PLAINTEXT listener.
-allowPlaintextListener: false
+allowPlaintextListener: true
 
 ## The address the socket server listens on.
 # listeners:
@@ -204,7 +204,7 @@ sslEndpointIdentificationAlgorithm: https
 ##
 auth:
   ## Switch to enable the kafka authentication.
-  enabled: true
+  enabled: false
 
   ## Enable SSL to be used with brokers and consumers
   #ssl: false
@@ -335,7 +335,7 @@ readinessProbe:
 metrics:
   ## Prometheus Kafka Exporter: exposes complimentary metrics to JMX Exporter
   kafka:
-    enabled: true
+    enabled: false
 
     ## Bitnami Kafka exporter image
     ## ref: https://hub.docker.com/r/bitnami/kafka-exporter/tags/
@@ -402,7 +402,7 @@ metrics:
   ## Prometheus JMX Exporter: exposes the majority of Kafkas metrics
   ##
   jmx:
-    enabled: true
+    enabled: false
 
     ## Bitnami JMX exporter image
     ## ref: https://hub.docker.com/r/bitnami/jmx-exporter/tags/
@@ -540,8 +540,6 @@ metrics:
 ##
 zookeeper:
   enabled: true
-  metrics:
-    enabled: true
 
 externalZookeeper:
   ## This value is only used when zookeeper.enabled is set to false
