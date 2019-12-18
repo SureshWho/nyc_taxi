@@ -27,9 +27,11 @@ sudo chown -R $(id -u):$(id -g) $HOME/.kube/config
 ### Add service account keys for accessing GCR
 ./SecretInstall.sh
 
-./RedisClusterInstall.sh
+./HelmInstall.sh
+#./RedisClusterInstall.sh
+./KafkaClusterInstall.sh
 
-./PodsInstall.sh
+#./PodsInstall.sh
 
 echo "Installation Done"
 
